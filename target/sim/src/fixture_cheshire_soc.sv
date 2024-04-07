@@ -62,6 +62,14 @@ module fixture_cheshire_soc #(
   logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_i;
   logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_o;
 
+
+    // AXI2HMDI interface
+  logic                          axi2hdmi_hsync_o;
+  logic                          axi2hdmi_vsync_o;
+  logic [DutCfg.Axi2HdmiOutRedWidth  -1:0]  axi2hdmi_red_o;
+  logic [DutCfg.Axi2HdmiOutGreenWidth-1:0]  axi2hdmi_green_o;
+  logic [DutCfg.Axi2HdmiOutBlueWidth -1:0]  axi2hdmi_blue_o;
+
   cheshire_soc #(
     .Cfg                ( DutCfg ),
     .ExtHartinfo        ( '0 ),
@@ -133,7 +141,13 @@ module fixture_cheshire_soc #(
     .vga_vsync_o        ( ),
     .vga_red_o          ( ),
     .vga_green_o        ( ),
-    .vga_blue_o         ( )
+    .vga_blue_o         ( ),
+
+    .axi2hdmi_hsync_o   ( axi2hdmi_hsync_o ),
+    .axi2hdmi_vsync_o   ( axi2hdmi_vsync_o ),
+    .axi2hdmi_red_o     ( axi2hdmi_red_o ),
+    .axi2hdmi_green_o   ( axi2hdmi_green_o ),
+    .axi2hdmi_blue_o    ( axi2hdmi_blue_o )
   );
 
   ////////////////////////

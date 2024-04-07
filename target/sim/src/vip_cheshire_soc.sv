@@ -24,7 +24,7 @@ module vip_cheshire_soc import cheshire_pkg::*; #(
   parameter real          TAppl             = 0.1,
   parameter real          TTest             = 0.9,
   // UART
-  parameter int unsigned  UartBaudRate      = 115200,
+  parameter int unsigned  UartBaudRate      = 115200 * 2,
   parameter int unsigned  UartParityEna     = 0,
   parameter int unsigned  UartBurstBytes    = 256,
   parameter int unsigned  UartWaitCycles    = 60,
@@ -71,7 +71,14 @@ module vip_cheshire_soc import cheshire_pkg::*; #(
   output logic [SlinkNumChan-1:0]                    slink_rcv_clk_i,
   input  logic [SlinkNumChan-1:0]                    slink_rcv_clk_o,
   output logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_i,
-  input  logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_o
+  input  logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_o,
+
+  // AXI2HMDI interface
+  input logic                                     axi2hdmi_hsync_o,
+  input logic                                     axi2hdmi_vsync_o,
+  input logic [DutCfg.Axi2HdmiOutRedWidth  -1:0]  axi2hdmi_red_o,
+  input logic [DutCfg.Axi2HdmiOutGreenWidth-1:0]  axi2hdmi_green_o,
+  input logic [DutCfg.Axi2HdmiOutBlueWidth -1:0]  axi2hdmi_blue_o
 );
 
   `include "cheshire/typedef.svh"

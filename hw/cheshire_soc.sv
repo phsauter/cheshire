@@ -96,7 +96,14 @@ module cheshire_soc import cheshire_pkg::*; #(
   output logic                          vga_vsync_o,
   output logic [Cfg.VgaRedWidth  -1:0]  vga_red_o,
   output logic [Cfg.VgaGreenWidth-1:0]  vga_green_o,
-  output logic [Cfg.VgaBlueWidth -1:0]  vga_blue_o
+  output logic [Cfg.VgaBlueWidth -1:0]  vga_blue_o,
+
+  // AXI2HMDI interface
+  output logic                          axi2hdmi_hsync_o,
+  output logic                          axi2hdmi_vsync_o,
+  output logic [Cfg.Axi2HdmiOutRedWidth  -1:0]  axi2hdmi_red_o,
+  output logic [Cfg.Axi2HdmiOutGreenWidth-1:0]  axi2hdmi_green_o,
+  output logic [Cfg.Axi2HdmiOutBlueWidth -1:0]  axi2hdmi_blue_o
 );
 
   `include "axi/typedef.svh"
@@ -1654,6 +1661,131 @@ module cheshire_soc import cheshire_pkg::*; #(
 
   if (!(Cfg.Vga && Cfg.BusErr)) begin : gen_vga_bus_err_tie
     assign intr.intn.bus_err.vga = '0;
+  end
+
+  ////////////////
+  //  AXI2HDMI  //
+  ////////////////
+  
+
+  if (Cfg.Axi2Hdmi) begin : gen_axi2hdmi
+    //All needed to transpose RegBus to Axi-lite
+
+    `AXI_TYPEDEF_ALL(axi2hdmi_axi_cmd, logic [Cfg.AddrWidth-1:0], logic[0:0], logic [31:0], logic [(32/8)-1:0], logic[0:0]);
+    `AXI_LITE_TYPEDEF_ALL(axi2hdmi_axi_lite, logic [Cfg.AddrWidth-1:0], logic [31:0], logic [(32/8)-1:0]);
+    
+    axi2hdmi_axi_cmd_req_t axi2hdmi_axi_cmd_req;
+    axi2hdmi_axi_cmd_resp_t axi2hdmi_axi_cmd_resp;
+    axi2hdmi_axi_lite_req_t axi2hdmi_axi_lite_req;
+    axi2hdmi_axi_lite_resp_t axi2hdmi_axi_lite_resp;
+
+    axi_mst_req_t axi_axi2hdmi_req;
+
+    logic axi2hdmi_output_enabled;
+    logic [23:0] axi2hdmi_colors;
+    logic axi2hdmi_hsync, axi2hdmi_vsync;
+
+    reg_to_axi#(
+      .DataWidth(32),
+      .reg_req_t(reg_req_t),
+      .reg_rsp_t(reg_rsp_t),
+      .axi_req_t(axi2hdmi_axi_cmd_req_t),
+      .axi_rsp_t(axi2hdmi_axi_cmd_resp_t)
+    ) axi2hdmi_reg_to_axi (
+      .clk_i(clk_i),
+      .rst_ni(rst_ni),
+      .reg_req_i(reg_out_req[RegOut.axi2hdmi]),
+      .reg_rsp_o(reg_out_rsp[RegOut.axi2hdmi]),
+      .axi_req_o(axi2hdmi_axi_cmd_req),
+      .axi_rsp_i(axi2hdmi_axi_cmd_resp)
+    );
+
+    axi_to_axi_lite#(
+      .AxiAddrWidth(Cfg.AddrWidth),
+      .AxiDataWidth(32),
+      .AxiIdWidth(1),
+      .AxiUserWidth(1),
+      .AxiMaxWriteTxns(1),
+      .AxiMaxReadTxns(1),
+      .FullBW(0),
+      .FallThrough(1),
+      .full_req_t(axi2hdmi_axi_cmd_req_t),
+      .full_resp_t(axi2hdmi_axi_cmd_resp_t),
+      .lite_req_t(axi2hdmi_axi_lite_req_t),
+      .lite_resp_t(axi2hdmi_axi_lite_resp_t)
+    ) axi2hdmi_axi_to_axi_lite (
+      .clk_i,
+      .rst_ni,
+      .test_i('0),
+
+      .slv_req_i(axi2hdmi_axi_cmd_req),
+      .slv_resp_o(axi2hdmi_axi_cmd_resp),
+
+      .mst_req_o(axi2hdmi_axi_lite_req),
+      .mst_resp_i(axi2hdmi_axi_lite_resp)
+    );
+
+    assign axi2hdmi_hsync_o  = axi2hdmi_output_enabled ? axi2hdmi_hsync         : '0;
+    assign axi2hdmi_vsync_o  = axi2hdmi_output_enabled ? axi2hdmi_vsync         : '0;
+    assign axi2hdmi_red_o    = axi2hdmi_output_enabled ? axi2hdmi_colors[7:0]   : '0;
+    assign axi2hdmi_green_o  = axi2hdmi_output_enabled ? axi2hdmi_colors[15:8]  : '0;
+    assign axi2hdmi_blue_o   = axi2hdmi_output_enabled ? axi2hdmi_colors[23:16] : '0;
+
+    always_comb begin
+      axi_in_req[AxiIn.axi2hdmi]         = axi_axi2hdmi_req;
+      //Overwrite user signals
+      //axi_in_req[AxiIn.axi2hdmi].aw.user = Cfg.AxiUserDefault;
+      //axi_in_req[AxiIn.axi2hdmi].w.user  = Cfg.AxiUserDefault;
+      //axi_in_req[AxiIn.axi2hdmi].ar.user = Cfg.AxiUserDefault;
+    end
+
+    AXI2HDMI #(
+      .AXI4_ADDRESS_WIDTH(Cfg.AddrWidth),
+      .AXI4_DATA_WIDTH(Cfg.AxiDataWidth),
+      .AXI4_LITE_DATA_WIDTH(Cfg.AxiDataWidth),
+      .AXI4_ID_WIDTH(Cfg.AxiMstIdWidth),
+      .DC_FIFO_DEPTH(Cfg.Axi2HdmiDcFifoDepth),
+      .SC_FIFO_DEPTH(Cfg.Axi2HdmiScFifoDepth),
+      .FILL_THRESH(Cfg.Axi2HdmiFillThreshold),
+      //TODO haha font is relative, get rekt if you don't have it in the home folder
+      .FONT_MEMINIT_FILE("~/cheshire/axi2hdmi_fonts/font_meminit.txt"),
+      .XILINX(0),
+      .axi_req_t(axi_mst_req_t),
+      .axi_resp_t(axi_mst_rsp_t),
+      .axi_lite_req_t(axi2hdmi_axi_lite_req_t),
+      .axi_lite_resp_t(axi2hdmi_axi_lite_resp_t)
+    ) i_axi2hdmi (
+      .AXI_ACLK_CI(clk_i),
+      .AXI_ARESETn_RBI(rst_ni),
+      // AXI read-only master
+      .axi_req_o(axi_axi2hdmi_req),
+      .axi_resp_i(axi_in_rsp[AxiIn.axi2hdmi]),
+      // AXI lite slave, r/w
+      .axi_lite_req_i(axi2hdmi_axi_lite_req),
+      .axi_lite_resp_o(axi2hdmi_axi_lite_resp),
+      // Pixel Data interface
+      .PixelClk_CI(clk_i),
+      .PxClkRst_RBI(rst_ni),
+      
+      .DOut_RGB_DO(axi2hdmi_colors),
+      .DE_RGB_SO(axi2hdmi_output_enabled),
+      .HSync_RGB_SO(axi2hdmi_hsync),
+      .VSync_RGB_SO(axi2hdmi_vsync),
+
+      .DOut_422_DO  ( ),
+      .DE_422_SO    ( ),
+      .HSync_422_SO ( ),
+      .VSync_422_SO ( ),
+      .SCEmpty_SO   ( ),
+      .DCEmpty_SO   ( )
+    );
+
+  end else begin : gen_no_axi2hdmi
+    assign axi2hdmi_hsync_o  = 0;
+    assign axi2hdmi_vsync_o  = 0;
+    assign axi2hdmi_red_o    = '0;
+    assign axi2hdmi_green_o  = '0;
+    assign axi2hdmi_blue_o   = '0;
   end
 
   //////////////////
