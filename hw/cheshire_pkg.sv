@@ -134,6 +134,7 @@ package cheshire_pkg;
     bit     SerialLink;
     bit     Vga;
     bit     Usb;
+    bit     Axi2Hdmi;
     bit     AxiRt;
     bit     Clic;
     bit     IrqRouter;
@@ -165,6 +166,14 @@ package cheshire_pkg;
     aw_bt   VgaVCountWidth;
     dw_bt   VgaBufferDepth;
     dw_bt   VgaMaxReadTxns;
+    // Parameters for Axi2Hdmi
+    // Most parameters are set during runtime
+    byte_bt Axi2HdmiOutRedWidth; //TODO these are currently ignored...
+    byte_bt Axi2HdmiOutGreenWidth;
+    byte_bt Axi2HdmiOutBlueWidth;
+    dw_bt   Axi2HdmiScFifoDepth;
+    dw_bt   Axi2HdmiFillThreshold;
+    dw_bt   Axi2HdmiDcFifoDepth;
     // Parameters for Serial Link
     dw_bt   SlinkMaxTxnsPerId;
     dw_bt   SlinkMaxUniqIds;
@@ -299,6 +308,7 @@ package cheshire_pkg;
     aw_bt slink;
     aw_bt vga;
     aw_bt usb;
+    aw_bt axi2hdmi;
     aw_bt ext_base;
     aw_bt num_in;
   } axi_in_t;
@@ -312,6 +322,7 @@ package cheshire_pkg;
     if (cfg.SerialLink) begin i++; ret.slink = i; end
     if (cfg.Vga)        begin i++; ret.vga   = i; end
     if (cfg.Usb)        begin i++; ret.usb   = i; end
+    if (cfg.Axi2Hdmi)   begin i++; ret.axi2hdmi = i; end
     i++;
     ret.ext_base = i;
     ret.num_in = i + cfg.AxiExtNumMst;
@@ -394,6 +405,7 @@ package cheshire_pkg;
     aw_bt slink;
     aw_bt vga;
     aw_bt usb;
+    aw_bt axi2hdmi;
     aw_bt axirt;
     aw_bt irq_router;
     aw_bt [2**MaxCoresWidth-1:0] bus_err;
@@ -419,6 +431,7 @@ package cheshire_pkg;
     if (cfg.SerialLink)   begin i++; ret.slink      = i; r++; ret.map[r] = '{i, AmSlink, AmSlink +'h1000}; end
     if (cfg.Vga)          begin i++; ret.vga        = i; r++; ret.map[r] = '{i, 'h0300_7000, 'h0300_8000}; end
     if (cfg.Usb)          begin i++; ret.usb        = i; r++; ret.map[r] = '{i, 'h0300_8000, 'h0300_9000}; end
+    if (cfg.Axi2Hdmi)     begin i++; ret.axi2hdmi   = i; r++; ret.map[r] = '{i, 'h0300_9000, 'h0300_A000}; end
     if (cfg.IrqRouter)    begin i++; ret.irq_router = i; r++; ret.map[r] = '{i, 'h0208_0000, 'h020c_0000}; end
     if (cfg.AxiRt)        begin i++; ret.axirt      = i; r++; ret.map[r] = '{i, 'h020c_0000, 'h0210_0000}; end
     if (cfg.Clic) for (int j = 0; j < cfg.NumCores; j++) begin
@@ -606,6 +619,7 @@ package cheshire_pkg;
     SerialLink        : 1,
     Vga               : 1,
     Usb               : 1,
+    Axi2Hdmi          : 1,
     AxiRt             : 0,
     Clic              : 0,
     IrqRouter         : 0,
@@ -637,6 +651,15 @@ package cheshire_pkg;
     VgaVCountWidth    : 24, // TODO: See above
     VgaBufferDepth    : 16,
     VgaMaxReadTxns    : 24,
+
+    //Axi2Hdmi
+    Axi2HdmiOutRedWidth  : 3,
+    Axi2HdmiOutGreenWidth: 3,
+    Axi2HdmiOutBlueWidth : 2,
+    Axi2HdmiScFifoDepth  : 128,
+    Axi2HdmiFillThreshold: 112,
+    Axi2HdmiDcFifoDepth  : 8,
+
     // Serial Link: map other chip's lower 32bit to 'h1_000_0000
     SlinkMaxTxnsPerId : 4,
     SlinkMaxUniqIds   : 4,

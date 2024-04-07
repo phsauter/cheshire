@@ -23,6 +23,16 @@ packages:
     - common_cells
     - common_verification
     - tech_cells_generic
+  axi2hdmi:
+    revision: 86db640e391eea37293a25b4d0a5cefb6c7195a5
+    version: null
+    source:
+      Git: https://iis-git.ee.ethz.ch/georgr/PAPER_hw.git
+    dependencies:
+    - axi
+    - common_cells
+    - common_verification
+    - tech_cells_generic
   axi_llc:
     revision: 559bcbd09a5a884dbe31e2d72fd95d024e357f39
     version: 0.2.1
@@ -78,8 +88,8 @@ packages:
     - common_cells
     - register_interface
   common_cells:
-    revision: 13f28aa0021fc22c0d01a12d618fda58d2c93239
-    version: 1.33.0
+    revision: ad22699793d98ef714f120c6268fe92d096a61e1
+    version: 1.33.1
     source:
       Git: https://github.com/pulp-platform/common_cells.git
     dependencies:
