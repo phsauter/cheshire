@@ -25,7 +25,9 @@
 #define TXT_BUFF_PARA     ( 7 * CMD_IF_OFFSET)
 #define CURSOR_FONT_PARA  ( 8 * CMD_IF_OFFSET)
 
-uint64_t* address;
+void wts(int idx, uint32_t val) {
+    *reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_SCRATCH_1_REG_OFFSET * idx) = val;
+}
 
 void int_to_hex(uint32_t src, char* dest) {
     for(int b = 0; b < 8; b++) {
@@ -39,11 +41,11 @@ void int_to_hex(uint32_t src, char* dest) {
     }
 }
 
-uint32_t test_peripheral(uint32_t* err) {
-    uint32_t pixtot = (106<<16) + 62;
-    uint32_t pixact = (80<<16) + 60;
+uint32_t test_peripheral(uint32_t* err, uint32_t arr) {
+    uint32_t pixtot = (1056<<16) + 628;
+    uint32_t pixact = (800<<16) + 600;
     uint32_t front_porch = (40<<16) + 1;
-    uint32_t sync_times = ((128<<16) + 4) | (1<<31) | (1<<15);
+    uint32_t sync_times = ((128<<16) + 1) | (1<<31) | (1<<15);
 
     //10 pix vert and hor
     *reg32(AXI2HDMI_BASE, H_VTOT) = pixtot;
@@ -67,15 +69,38 @@ uint32_t test_peripheral(uint32_t* err) {
     *reg32(AXI2HDMI_BASE, H_VSYNC) = sync_times;
     *err = *reg32(AXI2HDMI_BASE, H_VSYNC);
     if(*err != sync_times) {
-        return 5;
+        return 5; 
     }
-
-    *reg32(AXI2HDMI_BASE, POINTERQ) = address;
+/*
+    wts(15, 10);
+    *reg32(AXI2HDMI_BASE, POINTERQ) = arr;
     *err = *reg32(AXI2HDMI_BASE, POINTERQ);
+    wts(15, *err);
+    wts(15, 20);
+    *reg32(AXI2HDMI_BASE, POINTERQ) = arr;
+    *err = *reg32(AXI2HDMI_BASE, POINTERQ);
+    wts(15, *err);
+    wts(15, 30);
+    *reg32(AXI2HDMI_BASE, POINTERQ) = arr;
+    *err = *reg32(AXI2HDMI_BASE, POINTERQ);
+    wts(15, *err);
+    wts(15, 40);
+    *reg32(AXI2HDMI_BASE, POINTERQ) = arr;
+    *err = *reg32(AXI2HDMI_BASE, POINTERQ);
+    wts(15, *err);
+*/
+    wts(15, 50);
+    //Bitmask to hold pointer!
+    *reg32(AXI2HDMI_BASE, POINTERQ) = arr | 0b010;
+    *err = *reg32(AXI2HDMI_BASE, POINTERQ);
+    wts(15, *err);
+    wts(15, 60);
+    /*
     if(*err != 1) {
-        //return 3; TODO why this fail? :(
+        return 3;
+        //TODO why this fail? :(
     }
-
+    */
     *reg32(AXI2HDMI_BASE, POWERREG) = 1;
     *err = *reg32(AXI2HDMI_BASE, POWERREG);
     if(*err != 1) {
@@ -85,31 +110,56 @@ uint32_t test_peripheral(uint32_t* err) {
     return 0;
 }
 
-
+//uint64_t arr[800 * 600 * 3 / 8];
+uint32_t arr = 0x81000000;
 int main(void) {
-    uint64_t arr[80 * 6 / 2];
-    address = arr;
     uint32_t rtc_freq = *reg32(&__base_regs, CHESHIRE_RTC_FREQ_REG_OFFSET);
     uint64_t reset_freq = clint_get_core_freq(rtc_freq, 2500);
+
     uart_init(&__base_uart, reset_freq, __BOOT_BAUDRATE);    
 
-    for(long unsigned int i = 0; i < sizeof(arr); i++) {
-        *(((volatile uint8_t*)arr) + i) = i; 
+    wts(3, 0xff);
+    volatile uint64_t* k = arr;
+    for(uint16_t i = 0; i < 200; i++) {
+        uint64_t rgb = 0xff;
+        uint8_t byteshift = (i / 50) % 3;
+        rgb <<= 8 * byteshift;
+        rgb |= rgb >> (24 - 8 * byteshift);
+        rgb &= 0xffffff;
+        k[0] = rgb << 48 | rgb << 24 | rgb;
+        k[1] = rgb << 56 | rgb << 32 | rgb << 8 | rgb >> 16;
+        k[2] = rgb << 40 | rgb << 16 | rgb >> 8;
+        
+        k += 3;
     }
 
-    char val[] = "uuuuoooo-\r\n";
+    fence();
+    wts(3, 0xa0);
     uint32_t err;
-    uint32_t ret = test_peripheral(&err);
+    uint32_t ret = test_peripheral(&err, (uint32_t) arr);
+    wts(3, ret);
+    wts(4, err);
+    wts(5, *reg32(AXI2HDMI_BASE, CURRENT_PTR));
+    wts(6, arr);
+    wts(6, ((uint32_t*)arr)[1]);
 
-    int_to_hex(*reg32(AXI2HDMI_BASE, CURRENT_PTR), val);
-    *(val + 8) = 'a' + ret;
-    volatile uint32_t *scratch = reg32(&__base_regs, CHESHIRE_SCRATCH_3_REG_OFFSET);
+    k = arr + 800 * 300 * 0;
+    for(uint16_t i = 0; i < 800 * 600 / 8; i++) {
+        uint64_t rgb = 0xff;
+        uint8_t byteshift = (i / 50) % 3;
+        rgb <<= 8 * byteshift;
+        rgb |= rgb >> (24 - 8 * byteshift);
+        rgb &= 0xffffff;
+        k[0] = rgb << 48 | rgb << 24 | rgb;
+        k[1] = rgb << 56 | rgb << 32 | rgb << 8 | rgb >> 16;
+        k[2] = rgb << 40 | rgb << 16 | rgb >> 8;
+        
+        k += 3;
+    }
+    fence();
 
-    uart_write_str(&__base_uart, val, sizeof(val));
-    uart_write_flush(&__base_uart);
-
-    int_to_hex(((uint64_t)arr), val);
-    uart_write_str(&__base_uart, val, sizeof(val));
-    uart_write_flush(&__base_uart);
+    //Necessary so that FPGA does not stop
+    while (1) {}
+    
     return 0;
 }

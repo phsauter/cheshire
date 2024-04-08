@@ -76,9 +76,9 @@ module vip_cheshire_soc import cheshire_pkg::*; #(
   // AXI2HMDI interface
   input logic                                     axi2hdmi_hsync_o,
   input logic                                     axi2hdmi_vsync_o,
-  input logic [DutCfg.Axi2HdmiOutRedWidth  -1:0]  axi2hdmi_red_o,
-  input logic [DutCfg.Axi2HdmiOutGreenWidth-1:0]  axi2hdmi_green_o,
-  input logic [DutCfg.Axi2HdmiOutBlueWidth -1:0]  axi2hdmi_blue_o
+  input logic [8-1:0]  axi2hdmi_red_o,
+  input logic [8-1:0]  axi2hdmi_green_o,
+  input logic [8 -1:0]  axi2hdmi_blue_o
 );
 
   `include "cheshire/typedef.svh"
