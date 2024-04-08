@@ -24,7 +24,7 @@ packages:
     - common_verification
     - tech_cells_generic
   axi2hdmi:
-    revision: 86db640e391eea37293a25b4d0a5cefb6c7195a5
+    revision: bf86560deeeef816c0ead83f9801086ed59112d6
     version: null
     source:
       Git: https://iis-git.ee.ethz.ch/georgr/PAPER_hw.git
