@@ -66,9 +66,9 @@ module fixture_cheshire_soc #(
     // AXI2HMDI interface
   logic                          axi2hdmi_hsync_o;
   logic                          axi2hdmi_vsync_o;
-  logic [DutCfg.Axi2HdmiOutRedWidth  -1:0]  axi2hdmi_red_o;
-  logic [DutCfg.Axi2HdmiOutGreenWidth-1:0]  axi2hdmi_green_o;
-  logic [DutCfg.Axi2HdmiOutBlueWidth -1:0]  axi2hdmi_blue_o;
+  logic [8  -1:0]  axi2hdmi_red_o;
+  logic [8  -1:0]  axi2hdmi_green_o;
+  logic [8  -1:0]  axi2hdmi_blue_o;
 
   cheshire_soc #(
     .Cfg                ( DutCfg ),

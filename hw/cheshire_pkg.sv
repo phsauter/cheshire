@@ -166,9 +166,6 @@ package cheshire_pkg;
     dw_bt   VgaMaxReadTxns;
     // Parameters for Axi2Hdmi
     // Most parameters are set during runtime
-    byte_bt Axi2HdmiOutRedWidth; //TODO these are currently ignored...
-    byte_bt Axi2HdmiOutGreenWidth;
-    byte_bt Axi2HdmiOutBlueWidth;
     dw_bt   Axi2HdmiScFifoDepth;
     dw_bt   Axi2HdmiFillThreshold;
     dw_bt   Axi2HdmiDcFifoDepth;
@@ -632,20 +629,17 @@ package cheshire_pkg;
     LlcOutRegionStart : 'h8000_0000,
     LlcOutRegionEnd   : 'h1_0000_0000,
     // VGA: RGB332
-    VgaRedWidth       : 3,
-    VgaGreenWidth     : 3,
-    VgaBlueWidth      : 2,
+    VgaRedWidth       : 5,
+    VgaGreenWidth     : 6,
+    VgaBlueWidth      : 5,
     VgaHCountWidth    : 24, // TODO: Default is 32; is this needed?
     VgaVCountWidth    : 24, // TODO: See above
     VgaBufferDepth    : 16,
     VgaMaxReadTxns    : 24,
 
     //Axi2Hdmi
-    Axi2HdmiOutRedWidth  : 3,
-    Axi2HdmiOutGreenWidth: 3,
-    Axi2HdmiOutBlueWidth : 2,
-    Axi2HdmiScFifoDepth  : 128,
-    Axi2HdmiFillThreshold: 112,
+    Axi2HdmiScFifoDepth  : 8,
+    Axi2HdmiFillThreshold: 4,
     Axi2HdmiDcFifoDepth  : 8,
 
     // Serial Link: map other chip's lower 32bit to 'h1_000_0000

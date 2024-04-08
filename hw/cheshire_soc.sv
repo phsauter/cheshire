@@ -101,9 +101,9 @@ module cheshire_soc import cheshire_pkg::*; #(
   // AXI2HMDI interface
   output logic                          axi2hdmi_hsync_o,
   output logic                          axi2hdmi_vsync_o,
-  output logic [Cfg.Axi2HdmiOutRedWidth  -1:0]  axi2hdmi_red_o,
-  output logic [Cfg.Axi2HdmiOutGreenWidth-1:0]  axi2hdmi_green_o,
-  output logic [Cfg.Axi2HdmiOutBlueWidth -1:0]  axi2hdmi_blue_o
+  output logic [8-1:0]  axi2hdmi_red_o,
+  output logic [8-1:0]  axi2hdmi_green_o,
+  output logic [8-1:0]  axi2hdmi_blue_o
 );
 
   `include "axi/typedef.svh"
@@ -1576,6 +1576,33 @@ module cheshire_soc import cheshire_pkg::*; #(
 
   end
 
+  //AXI HDMI MUX
+  //Ugly mux so that axi2vga and axi2hdmi can use the same mux
+  logic use_paper;
+
+   logic                          vga_hsync_tmp;
+   logic                          vga_vsync_tmp;
+   logic [Cfg.VgaRedWidth  -1:0]  vga_red_tmp;
+   logic [Cfg.VgaGreenWidth-1:0]  vga_green_tmp;
+   logic [Cfg.VgaBlueWidth -1:0]  vga_blue_tmp;
+
+  assign use_paper = 1;
+  always_comb begin
+    if (use_paper == 1) begin    
+      vga_hsync_o  = axi2hdmi_hsync_o;
+      vga_vsync_o  = axi2hdmi_vsync_o;
+      vga_red_o    = axi2hdmi_red_o[7:(8-Cfg.VgaRedWidth)];
+      vga_green_o  = axi2hdmi_green_o[7:(8-Cfg.VgaGreenWidth)];
+      vga_blue_o   = axi2hdmi_blue_o[7:(8-Cfg.VgaBlueWidth)];
+    end else begin
+      vga_hsync_o  = vga_hsync_tmp;
+      vga_vsync_o  = vga_vsync_tmp;
+      vga_red_o    = vga_red_tmp;
+      vga_green_o  = vga_green_tmp;
+      vga_blue_o   = vga_blue_tmp;
+    end
+  end
+
   ///////////
   //  VGA  //
   ///////////
@@ -1617,11 +1644,11 @@ module cheshire_soc import cheshire_pkg::*; #(
       .reg_rsp_o      ( reg_out_rsp[RegOut.vga] ),
       .axi_req_o      ( axi_vga_req           ),
       .axi_resp_i     ( axi_in_rsp[AxiIn.vga] ),
-      .hsync_o        ( vga_hsync_o ),
-      .vsync_o        ( vga_vsync_o ),
-      .red_o          ( vga_red_o   ),
-      .green_o        ( vga_green_o ),
-      .blue_o         ( vga_blue_o  )
+      .hsync_o        ( vga_hsync_tmp ),
+      .vsync_o        ( vga_vsync_tmp ),
+      .red_o          ( vga_red_tmp   ),
+      .green_o        ( vga_green_tmp ),
+      .blue_o         ( vga_blue_tmp  )
     );
 
     if (Cfg.BusErr) begin : gen_vga_bus_err
@@ -1651,11 +1678,11 @@ module cheshire_soc import cheshire_pkg::*; #(
 
   end else begin : gen_no_vga
 
-    assign vga_hsync_o  = 0;
-    assign vga_vsync_o  = 0;
-    assign vga_red_o    = '0;
-    assign vga_green_o  = '0;
-    assign vga_blue_o   = '0;
+    assign vga_hsync_tmp  = 0;
+    assign vga_vsync_tmp  = 0;
+    assign vga_red_tmp    = '0;
+    assign vga_green_tmp  = '0;
+    assign vga_blue_tmp   = '0;
 
   end
 
@@ -1725,8 +1752,8 @@ module cheshire_soc import cheshire_pkg::*; #(
       .mst_resp_i(axi2hdmi_axi_lite_resp)
     );
 
-    assign axi2hdmi_hsync_o  = axi2hdmi_output_enabled ? axi2hdmi_hsync         : '0;
-    assign axi2hdmi_vsync_o  = axi2hdmi_output_enabled ? axi2hdmi_vsync         : '0;
+    assign axi2hdmi_hsync_o  = axi2hdmi_hsync;
+    assign axi2hdmi_vsync_o  = axi2hdmi_vsync;
     assign axi2hdmi_red_o    = axi2hdmi_output_enabled ? axi2hdmi_colors[7:0]   : '0;
     assign axi2hdmi_green_o  = axi2hdmi_output_enabled ? axi2hdmi_colors[15:8]  : '0;
     assign axi2hdmi_blue_o   = axi2hdmi_output_enabled ? axi2hdmi_colors[23:16] : '0;
@@ -1734,11 +1761,39 @@ module cheshire_soc import cheshire_pkg::*; #(
     always_comb begin
       axi_in_req[AxiIn.axi2hdmi]         = axi_axi2hdmi_req;
       //Overwrite user signals
-      //axi_in_req[AxiIn.axi2hdmi].aw.user = Cfg.AxiUserDefault;
-      //axi_in_req[AxiIn.axi2hdmi].w.user  = Cfg.AxiUserDefault;
-      //axi_in_req[AxiIn.axi2hdmi].ar.user = Cfg.AxiUserDefault;
+      axi_in_req[AxiIn.axi2hdmi].aw.user = Cfg.AxiUserDefault;
+      axi_in_req[AxiIn.axi2hdmi].w.user  = Cfg.AxiUserDefault;
+      axi_in_req[AxiIn.axi2hdmi].ar.user = Cfg.AxiUserDefault;
     end
 
+/*
+    logic [5:0] clk_counter_q, clk_counter_d;
+    logic pixel_clk_q, pixel_clk_d;
+
+    //Make on negedge and posedge, so that is more evenly streched
+    //Makes 50MHz clk to 40 MHz clk
+    always_ff @( posedge clk_i or negedge clk_i or negedge rst_ni) begin : axi2hdmi_clk_divider
+      if (rst_ni == 0) begin
+        clk_counter_q <= '0;
+        pixel_clk_q <= '0;
+      end else begin
+        clk_counter_q <= clk_counter_d;
+        pixel_clk_q <= pixel_clk_d;
+      end
+    end
+
+    always_comb begin
+      clk_counter_d = clk_counter_q;
+      pixel_clk_d   = pixel_clk_q;
+
+      if (clk_counter_q != 0) begin
+        pixel_clk_d = ~pixel_clk_d;
+      end
+
+      clk_counter_d += 1;
+      clk_counter_d %= 5;
+    end
+*/
     AXI2HDMI #(
       .AXI4_ADDRESS_WIDTH(Cfg.AddrWidth),
       .AXI4_DATA_WIDTH(Cfg.AxiDataWidth),
