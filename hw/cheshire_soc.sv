@@ -1865,7 +1865,7 @@ module cheshire_soc import cheshire_pkg::*; #(
       .SC_FIFO_DEPTH(Cfg.Axi2HdmiScFifoDepth),
       .FILL_THRESH(Cfg.Axi2HdmiFillThreshold),
       //TODO haha font is relative, get rekt if you don't have it in the home folder
-      .FONT_MEMINIT_FILE("~/cheshire/axi2hdmi_fonts/font_meminit.txt"),
+      .FONT_MEMINIT_FILE("font_meminit.txt"),
       .XILINX(0),
       .axi_req_t(axi_mst_req_t),
       .axi_resp_t(axi_mst_rsp_t),

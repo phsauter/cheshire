@@ -12,6 +12,7 @@
 #include "dif/uart.h"
 #include "params.h"
 #include "util.h"
+//#include "pepe.h"
 
 #define AXI2HDMI_BASE     ((void*)0x03009000)                           // Paper base address
 #define CMD_IF_OFFSET     0x00000008                           // Paper's command interface's register size
@@ -29,25 +30,12 @@ void wts(int idx, uint32_t val) {
     *reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_SCRATCH_1_REG_OFFSET * idx) = val;
 }
 
-void int_to_hex(uint32_t src, char* dest) {
-    for(int b = 0; b < 8; b++) {
-        uint32_t bits = (src >> (7 - b) * 4) & 0xf;
-        if (bits < 10) {
-            *dest = '0' + bits;
-        } else {
-            *dest = 'A' + (bits - 10);
-        }
-        dest++;
-    }
-}
-
 uint32_t test_peripheral(uint32_t* err, uint32_t arr) {
     uint32_t pixtot = (1056<<16) + 628;
     uint32_t pixact = (800<<16) + 600;
     uint32_t front_porch = (40<<16) + 1;
-    uint32_t sync_times = ((128<<16) + 1) | (1<<31) | (1<<15);
+    uint32_t sync_times = ((128<<16) + 4) | (1<<31) | (1<<15);
 
-    //10 pix vert and hor
     *reg32(AXI2HDMI_BASE, H_VTOT) = pixtot;
     *err = *reg32(AXI2HDMI_BASE, H_VTOT);
     if(*err != pixtot) {
@@ -110,31 +98,16 @@ uint32_t test_peripheral(uint32_t* err, uint32_t arr) {
     return 0;
 }
 
-//uint64_t arr[800 * 600 * 3 / 8];
 uint32_t arr = 0x81000000;
 int main(void) {
     uint32_t rtc_freq = *reg32(&__base_regs, CHESHIRE_RTC_FREQ_REG_OFFSET);
     uint64_t reset_freq = clint_get_core_freq(rtc_freq, 2500);
-
-    uart_init(&__base_uart, reset_freq, __BOOT_BAUDRATE);    
-
-    wts(3, 0xff);
-    volatile uint64_t* k = arr;
-    for(uint16_t i = 0; i < 200; i++) {
-        uint64_t rgb = 0xff;
-        uint8_t byteshift = (i / 50) % 3;
-        rgb <<= 8 * byteshift;
-        rgb |= rgb >> (24 - 8 * byteshift);
-        rgb &= 0xffffff;
-        k[0] = rgb << 48 | rgb << 24 | rgb;
-        k[1] = rgb << 56 | rgb << 32 | rgb << 8 | rgb >> 16;
-        k[2] = rgb << 40 | rgb << 16 | rgb >> 8;
-        
-        k += 3;
-    }
-
-    fence();
-    wts(3, 0xa0);
+/*    
+    char str[] = "Hell!\r\n";
+    uart_init(&__base_uart, reset_freq, __BOOT_BAUDRATE);
+    uart_write_str(&__base_uart, str, sizeof(str));
+    uart_write_flush(&__base_uart);
+*/
     uint32_t err;
     uint32_t ret = test_peripheral(&err, (uint32_t) arr);
     wts(3, ret);
@@ -143,12 +116,37 @@ int main(void) {
     wts(6, arr);
     wts(6, ((uint32_t*)arr)[1]);
 
-    k = arr + 800 * 300 * 0;
+    for(int x = 0; x < 800; x++) {
+        for(int y = 0; y < 600; y++) {
+            volatile uint8_t * ptr = arr + 3 * (y * 800 + x);
+            uint32_t rgb = 0;
+            /*
+            uint8_t mod = y % 30;
+            if (mod <= 10) {
+                rgb = 0xff0000;
+            } else if (mod <= 20) {
+                rgb = 0x00ff00;
+            } else {
+                rgb = 0x0000ff;
+            }
+            */
+            if(y <= 1 && y >= 0) {
+                rgb = 0xffffff;
+            }
+            ptr[0] = rgb;
+            ptr[1] = rgb >> 8;
+            ptr[2] = rgb >> 16;
+        }
+    }
+
+
+    /*
+    uint64_t* k = arr + 800 * 300 * 0;
     for(uint16_t i = 0; i < 800 * 600 / 8; i++) {
-        uint64_t rgb = 0xff;
-        uint8_t byteshift = (i / 50) % 3;
+        uint64_t rgb = orig_rgb;
+        uint8_t byteshift = (i / 800) % 3;
         rgb <<= 8 * byteshift;
-        rgb |= rgb >> (24 - 8 * byteshift);
+        rgb |= orig_rgb >> (24 - 8 * byteshift);
         rgb &= 0xffffff;
         k[0] = rgb << 48 | rgb << 24 | rgb;
         k[1] = rgb << 56 | rgb << 32 | rgb << 8 | rgb >> 16;
@@ -156,10 +154,20 @@ int main(void) {
         
         k += 3;
     }
+    */
     fence();
+    for(uint32_t i = 0; i < 0x40000; i++) {
+        wts(7, i);
+    }
 
-    //Necessary so that FPGA does not stop
-    while (1) {}
+    //Necessary so that FPGA/sim does not stop
+    //while (1) {}
     
     return 0;
 }
+
+
+//VSync period: 16'579'200 ns -> 60.3165412 Hz
+//VSync duration: 105'600ns
+//HSync period: 26'400 ns     -> 37.87 kHz
+//HSync duration: 3'200 ns
