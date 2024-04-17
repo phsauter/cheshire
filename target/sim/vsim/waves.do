@@ -37,3 +37,13 @@ add wave -label "15" sim:/tb_cheshire_soc/fix/dut/i_regs/u_scratch_15/q
 add wave -noupdate -divider CmdIf
 add wave -label "WrAddrReg_DP"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/WrAddrReg_DP
 add wave -label "FramePntr_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/FramePntr_DO
+add wave -label "HTot_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/HTot_DO
+add wave -label "VTot_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/VTot_DO
+add wave -label "HAct_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/HAct_DO
+add wave -label "VAct_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/VAct_DO
+add wave -label "HFront_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/HFront_DO
+add wave -label "VFront_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/VFront_DO
+add wave -label "VSync_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/VSync_DO
+add wave -label "HSync_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/HSync_DO
+add wave -label "HSyncPol_SO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/HSyncPol_SO
+add wave -label "VSyncPol_SO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/VSyncPol_SO

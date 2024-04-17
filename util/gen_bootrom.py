@@ -57,7 +57,6 @@ while length < max(len(binary), args.pad):
 
 binary += b"\0" * (length - len(binary))
 
-
 # Generate the words to be emitted.
 def chunks(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
