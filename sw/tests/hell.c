@@ -12,7 +12,7 @@
 #include "dif/uart.h"
 #include "params.h"
 #include "util.h"
-//#include "pepe.h"
+#include "pepe.h"
 
 #define AXI2HDMI_BASE     ((void*)0x03009000)                           // Paper base address
 #define CMD_IF_OFFSET     0x00000008                           // Paper's command interface's register size
@@ -23,19 +23,26 @@
 #define H_VSYNC           ( 4 * CMD_IF_OFFSET)
 #define POWERREG          ( 5 * CMD_IF_OFFSET)
 #define CURRENT_PTR       ( 6 * CMD_IF_OFFSET)
-#define TXT_BUFF_PARA     ( 7 * CMD_IF_OFFSET)
+#define TEXT_BUFF_PARA    ( 7 * CMD_IF_OFFSET)
 #define CURSOR_FONT_PARA  ( 8 * CMD_IF_OFFSET)
+
+#define FG_COLOR_PALETTE  0x400
+#define BG_COLOR_PALETTE  0x800
+
+uint8_t is_in_text_mode = 1;
+
+uint32_t arr = 0x81000000;
+uint32_t pixtot = (1056<<16) + 628;
+uint32_t pixact = (800<<16) + 600;
+uint32_t front_porch = (40<<16) + 1;
+uint32_t sync_times = ((128<<16) + 4) | (1<<31) | (1<<15);
+uint16_t cols = 90, rows = 35;
 
 void wts(int idx, uint32_t val) {
     *reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_SCRATCH_1_REG_OFFSET * idx) = val;
 }
 
-uint32_t test_peripheral(uint32_t* err, uint32_t arr) {
-    uint32_t pixtot = (1056<<16) + 628;
-    uint32_t pixact = (800<<16) + 600;
-    uint32_t front_porch = (40<<16) + 1;
-    uint32_t sync_times = ((128<<16) + 4) | (1<<31) | (1<<15);
-
+uint32_t test_peripheral(uint32_t* const err, uint32_t ptr) {
     *reg32(AXI2HDMI_BASE, H_VTOT) = pixtot;
     *err = *reg32(AXI2HDMI_BASE, H_VTOT);
     if(*err != pixtot) {
@@ -59,27 +66,21 @@ uint32_t test_peripheral(uint32_t* err, uint32_t arr) {
     if(*err != sync_times) {
         return 5; 
     }
-/*
-    wts(15, 10);
-    *reg32(AXI2HDMI_BASE, POINTERQ) = arr;
-    *err = *reg32(AXI2HDMI_BASE, POINTERQ);
-    wts(15, *err);
-    wts(15, 20);
-    *reg32(AXI2HDMI_BASE, POINTERQ) = arr;
-    *err = *reg32(AXI2HDMI_BASE, POINTERQ);
-    wts(15, *err);
-    wts(15, 30);
-    *reg32(AXI2HDMI_BASE, POINTERQ) = arr;
-    *err = *reg32(AXI2HDMI_BASE, POINTERQ);
-    wts(15, *err);
-    wts(15, 40);
-    *reg32(AXI2HDMI_BASE, POINTERQ) = arr;
-    *err = *reg32(AXI2HDMI_BASE, POINTERQ);
-    wts(15, *err);
-*/
+    
+    *reg32(AXI2HDMI_BASE, TEXT_BUFF_PARA) = (cols << 16) | rows;
+
+    //TODO no init foreground/background?
+
+    //Set text mode
+    *reg32(AXI2HDMI_BASE, POWERREG) = (0 | (is_in_text_mode << 16));
+    *err = *reg32(AXI2HDMI_BASE, POWERREG);
+    if(*err != (0 | (is_in_text_mode << 16))) {
+        return 12;
+    }
+
     wts(15, 50);
     //Bitmask to hold pointer!
-    *reg32(AXI2HDMI_BASE, POINTERQ) = arr | 0b010;
+    *reg32(AXI2HDMI_BASE, POINTERQ) = ptr | 0b010;
     *err = *reg32(AXI2HDMI_BASE, POINTERQ);
     wts(15, *err);
     wts(15, 60);
@@ -89,16 +90,64 @@ uint32_t test_peripheral(uint32_t* err, uint32_t arr) {
         //TODO why this fail? :(
     }
     */
-    *reg32(AXI2HDMI_BASE, POWERREG) = 1;
+
+
+
+    *reg32(AXI2HDMI_BASE, POWERREG) = (1 | (is_in_text_mode << 16));
     *err = *reg32(AXI2HDMI_BASE, POWERREG);
-    if(*err != 1) {
+    if(*err != (1 | (is_in_text_mode << 16))) {
         return 6;
     }
-
+    //Clear err
+    *err = 0;
     return 0;
 }
 
-uint32_t arr = 0x81000000;
+void pack_pixels(volatile uint32_t * const target, const uint32_t source[4]) {
+    target[0] = ((source[1] & 0xff) << 24) | source[0];
+    target[1] = ((source[2] & 0xffff) << 16) | ((source[1] >> 8) & 0xffff);
+    target[2] = ((source[3] << 8)) & ((source[2] >> 16) & 0xff);
+}
+
+
+void init_memory(volatile uint8_t * const target) {
+    if (is_in_text_mode) {
+        volatile uint16_t * ptr = target;
+        for(int i = 0; i < cols * rows; i++) {
+            *ptr = (((i / 16) % 0xff)<< 8) | (i % 0xff); //Print every character I guess? With no color
+            ptr++;
+        }
+        wts(6, ((volatile uint32_t*)target)[1]);
+    } else {
+        for(int y = 0; y < 10; y++) {
+            volatile uint32_t * line_start = target + y * (800 * 3);
+            for(int x4 = 0; x4 < 800 / 4; x4++) {
+                uint32_t pixels [4];
+                for(int x = 0; x < 4; x++) {
+                    uint32_t rgb = 0;
+                    if(y == 0) {
+                        rgb |= (x4 * 4 + x) / 10;
+                    } else if (y == 1) {
+                        rgb |= ((x4 * 4 + x) / 10) << 8;
+                    } else if (y == 2) {
+                        rgb |= ((x4 * 4 + x) / 10) << 16;
+                    }
+                    pixels[x] = rgb;
+                }
+                pack_pixels(line_start, pixels);
+                //Wrote 4 pixels into 3 bytes, go on the next four
+                line_start += 3;
+            }
+            fence();
+            wts(7, y);
+        }
+        wts(6, ((volatile uint32_t*)target)[1]);
+    }
+
+    //Make sure that RAM is updated
+    fence();
+}
+
 int main(void) {
     uint32_t rtc_freq = *reg32(&__base_regs, CHESHIRE_RTC_FREQ_REG_OFFSET);
     uint64_t reset_freq = clint_get_core_freq(rtc_freq, 2500);
@@ -108,55 +157,23 @@ int main(void) {
     uart_write_str(&__base_uart, str, sizeof(str));
     uart_write_flush(&__base_uart);
 */
+    
+    for(int i = 3; i < 16; i++)  {
+        wts(i, -1);
+    }
+    init_memory(arr);
+
     uint32_t err;
     uint32_t ret = test_peripheral(&err, (uint32_t) arr);
     wts(3, ret);
     wts(4, err);
+    if(ret != 0) {
+        return -1;
+    }
     wts(5, *reg32(AXI2HDMI_BASE, CURRENT_PTR));
-    wts(6, arr);
-    wts(6, ((uint32_t*)arr)[1]);
-
-    for(int x = 0; x < 800; x++) {
-        for(int y = 0; y < 600; y++) {
-            volatile uint8_t * ptr = arr + 3 * (y * 800 + x);
-            uint32_t rgb = 0;
-            /*
-            uint8_t mod = y % 30;
-            if (mod <= 10) {
-                rgb = 0xff0000;
-            } else if (mod <= 20) {
-                rgb = 0x00ff00;
-            } else {
-                rgb = 0x0000ff;
-            }
-            */
-            if(y <= 1 && y >= 0) {
-                rgb = 0xffffff;
-            }
-            ptr[0] = rgb;
-            ptr[1] = rgb >> 8;
-            ptr[2] = rgb >> 16;
-        }
-    }
-
-
-    /*
-    uint64_t* k = arr + 800 * 300 * 0;
-    for(uint16_t i = 0; i < 800 * 600 / 8; i++) {
-        uint64_t rgb = orig_rgb;
-        uint8_t byteshift = (i / 800) % 3;
-        rgb <<= 8 * byteshift;
-        rgb |= orig_rgb >> (24 - 8 * byteshift);
-        rgb &= 0xffffff;
-        k[0] = rgb << 48 | rgb << 24 | rgb;
-        k[1] = rgb << 56 | rgb << 32 | rgb << 8 | rgb >> 16;
-        k[2] = rgb << 40 | rgb << 16 | rgb >> 8;
-        
-        k += 3;
-    }
-    */
-    fence();
-    for(uint32_t i = 0; i < 0x40000; i++) {
+    //wts(6, arr);
+    
+    for(uint32_t i = 0; i < 0x80000; i++) {
         wts(7, i);
     }
 
@@ -165,9 +182,3 @@ int main(void) {
     
     return 0;
 }
-
-
-//VSync period: 16'579'200 ns -> 60.3165412 Hz
-//VSync duration: 105'600ns
-//HSync period: 26'400 ns     -> 37.87 kHz
-//HSync duration: 3'200 ns

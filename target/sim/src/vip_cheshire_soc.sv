@@ -917,6 +917,120 @@ module vip_cheshire_soc import cheshire_pkg::*; #(
     else $display("[SLINK] SUCCESS");
   endtask
 
+  ///////////////////////
+  //VIDEO OUTPUT tester//
+  ///////////////////////
+  localparam time pixel_period = 25ns;
+
+  //localparam tot_x = 1056, tot_y = 628;
+  localparam act_x = 800, act_y = 600;
+  //In lines
+  localparam vsync_time = 4;
+  localparam v_backporch = 23;
+  //In pixels
+  localparam hsync_time = 128;
+  localparam h_backporch = 88;
+
+  //This function should be called when axi2hdmi_hsync_o has already be asserted
+  task automatic get_line(output int line [act_x]);
+    $timeformat(-9, 2, " ns", 20);
+    //Wait for sync to be done
+    #(pixel_period * hsync_time);
+    #(1ps); //Wait one ps for sanity
+    $display("hsync time over, %t", $time);
+    assert (axi2hdmi_hsync_o == '0)
+    else   $error("Sync time is over, yet hsync still asserted");
+    //Wait for h backporch to be done
+    #(pixel_period * h_backporch);
+    $display("h_backporch over, %t", $time);
+
+    //Wait for border
+    //No border, so no wait
+    //#(pixel_period * h_left_border);
+    //$display("h border done")
+    
+    //Sample in the middle of the clock cycle
+    #(pixel_period / 2);
+    for(int x = 0; x < act_x; x++) begin
+      line[x] = (axi2hdmi_blue_o << 16) | (axi2hdmi_green_o << 8) | axi2hdmi_red_o;
+      #(pixel_period);
+    end
+    $display("All pixel for line, %t", $time);
+    @(posedge axi2hdmi_hsync_o); //Wait for line to be done
+  endtask
+
+  initial begin
+    int image [12][15];
+    integer file;
+    int i;
+    i = 12;
+    for(int y = 0; y < 12; y++) begin
+      for(int x = 0; x < 15; x++) begin
+        image[y][x] = x + y * 15;
+      end
+    end
+    
+    file = $fopen($sformatf("test0x%0h.bin", i), "wb");
+    for(int y = 0; y < 12; y++) begin
+      for(int x = 0; x < 15; x++) begin
+        $fwrite(file, "%u", 32'(image[y][x]));
+      end
+    end
+    $fclose(file);
+  end
+
+  initial begin : axi2hdmi_image_reader
+    int image [act_y][act_x];
+    time last_frame_start;
+    integer file;
+    integer frame_nr;
+
+    frame_nr = 0;
+
+    $timeformat(-9, 2, " ns", 20);
+    forever begin
+      @(posedge axi2hdmi_vsync_o);
+      $display("New frame at time %t", $time);
+
+      for(int i = 0; i < vsync_time; i++) begin
+        @(posedge axi2hdmi_hsync_o);
+      end
+      $display("vsync finished %t", $time);
+
+      //VSync should be low now
+      assert (axi2hdmi_vsync_o == '0) 
+      else   $error("Vsync should be down, %t", $time);
+
+      //Vertical sync time done
+      //Wait for back porch to be done
+      for(int i = 0; i < v_backporch; i++) begin
+        @(posedge axi2hdmi_hsync_o);
+      end
+      $display("vertical back porch done, %t", $time);
+
+      //Start of vertical border video 
+      //Skip border
+      //No border, so no skip
+
+      //Get the actual lines
+      for(int y = 0; y < act_y; y++) begin
+        $display("Line %d at time %t", y, $time);
+        get_line(image[y]);
+      end
+
+      $display("Frame done, %t", $time);
+      file = $fopen($sformatf("frame0x%0h.bin", frame_nr), "wb");
+      for(int y = 0; y < act_y; y++) begin
+        for(int x = 0; x < act_x; x++) begin
+          $fwrite(file, "%u", 32'(image[y][x]));
+        end
+      end
+      $fclose(file);
+      frame_nr += 1;
+      //Don't do anything; just wait for a new frame to start
+    end
+  end
+
 endmodule
 
 // Map pad IO to tristate wires to adapt from SoC IO (not needed for chip instances).

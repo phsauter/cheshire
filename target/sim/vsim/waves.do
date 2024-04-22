@@ -35,6 +35,10 @@ add wave -label "13" sim:/tb_cheshire_soc/fix/dut/i_regs/u_scratch_13/q
 add wave -label "14" sim:/tb_cheshire_soc/fix/dut/i_regs/u_scratch_14/q
 add wave -label "15" sim:/tb_cheshire_soc/fix/dut/i_regs/u_scratch_15/q
 add wave -noupdate -divider CmdIf
+add wave -label "PowerReg_DP"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/PowerReg_DP
+add wave -label "TextPntr_S"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/TextPntr_SO
+add wave -label "TextCols_D"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/TextCols_DO
+add wave -label "TextRows_D"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/TextRows_DO
 add wave -label "WrAddrReg_DP"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/WrAddrReg_DP
 add wave -label "FramePntr_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/FramePntr_DO
 add wave -label "HTot_DO"  sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/HTot_DO
