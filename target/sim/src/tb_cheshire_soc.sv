@@ -18,14 +18,6 @@ module tb_cheshire_soc #(
   logic [1:0] preload_mode;
   bit [31:0]  exit_code;
 
-
-  initial begin
-    @(negedge fix.axi2hdmi_hsync_o);
-    $display("[HSYNC_O] negedge 1");
-    @(negedge fix.axi2hdmi_hsync_o);
-    $display("[HSYNC_O] negedge 2");
-  end
-
   initial begin
     // Fetch plusargs or use safe (fail-fast) defaults
     if (!$value$plusargs("BOOTMODE=%d", boot_mode))     boot_mode     = 0;
@@ -51,7 +43,6 @@ module tb_cheshire_soc #(
           fix.vip.jtag_wait_for_eoc(exit_code);
         end 1: begin  // Serial Link
           fix.vip.slink_elf_run(preload_elf);
-          #1.5ms;
           fix.vip.slink_wait_for_eoc(exit_code);
         end 2: begin  // UART
           fix.vip.uart_debug_elf_run_and_wait(preload_elf, exit_code);
