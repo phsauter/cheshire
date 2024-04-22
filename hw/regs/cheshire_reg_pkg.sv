@@ -14,6 +14,10 @@ package cheshire_reg_pkg;
   ////////////////////////////
 
   typedef struct packed {
+    logic        q;
+  } cheshire_reg2hw_vga_select_reg_t;
+
+  typedef struct packed {
     logic [1:0]  d;
   } cheshire_hw2reg_boot_mode_reg_t;
 
@@ -72,6 +76,9 @@ package cheshire_reg_pkg;
     struct packed {
       logic        d;
     } bus_err;
+    struct packed {
+      logic        d;
+    } paper_vga;
   } cheshire_hw2reg_hw_features_reg_t;
 
   typedef struct packed {
@@ -89,6 +96,11 @@ package cheshire_reg_pkg;
       logic [7:0]  d;
     } blue_width;
   } cheshire_hw2reg_vga_params_reg_t;
+
+  // Register -> HW type
+  typedef struct packed {
+    cheshire_reg2hw_vga_select_reg_t vga_select; // [0:0]
+  } cheshire_reg2hw_t;
 
   // HW -> register type
   typedef struct packed {
@@ -125,6 +137,7 @@ package cheshire_reg_pkg;
   parameter logic [BlockAw-1:0] CHESHIRE_HW_FEATURES_OFFSET = 7'h 50;
   parameter logic [BlockAw-1:0] CHESHIRE_LLC_SIZE_OFFSET = 7'h 54;
   parameter logic [BlockAw-1:0] CHESHIRE_VGA_PARAMS_OFFSET = 7'h 58;
+  parameter logic [BlockAw-1:0] CHESHIRE_VGA_SELECT_OFFSET = 7'h 5c;
 
   // Reset values for hwext registers and their fields
   parameter logic [1:0] CHESHIRE_BOOT_MODE_RESVAL = 2'h 0;
@@ -159,11 +172,12 @@ package cheshire_reg_pkg;
     CHESHIRE_NUM_INT_HARTS,
     CHESHIRE_HW_FEATURES,
     CHESHIRE_LLC_SIZE,
-    CHESHIRE_VGA_PARAMS
+    CHESHIRE_VGA_PARAMS,
+    CHESHIRE_VGA_SELECT
   } cheshire_id_e;
 
   // Register width information to check illegal writes
-  parameter logic [3:0] CHESHIRE_PERMIT [23] = '{
+  parameter logic [3:0] CHESHIRE_PERMIT [24] = '{
     4'b 1111, // index[ 0] CHESHIRE_SCRATCH_0
     4'b 1111, // index[ 1] CHESHIRE_SCRATCH_1
     4'b 1111, // index[ 2] CHESHIRE_SCRATCH_2
@@ -186,7 +200,8 @@ package cheshire_reg_pkg;
     4'b 1111, // index[19] CHESHIRE_NUM_INT_HARTS
     4'b 0011, // index[20] CHESHIRE_HW_FEATURES
     4'b 1111, // index[21] CHESHIRE_LLC_SIZE
-    4'b 0111  // index[22] CHESHIRE_VGA_PARAMS
+    4'b 0111, // index[22] CHESHIRE_VGA_PARAMS
+    4'b 0001  // index[23] CHESHIRE_VGA_SELECT
   };
 
 endpackage
