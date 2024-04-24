@@ -1754,9 +1754,9 @@ module cheshire_soc import cheshire_pkg::*; #(
 
     assign axi2hdmi_hsync_o  = axi2hdmi_hsync;
     assign axi2hdmi_vsync_o  = axi2hdmi_vsync;
-    assign axi2hdmi_red_o    = axi2hdmi_output_enabled ? axi2hdmi_colors[7:0]   : '0;
+    assign axi2hdmi_red_o    = axi2hdmi_output_enabled ? axi2hdmi_colors[23:16]   : '0;
     assign axi2hdmi_green_o  = axi2hdmi_output_enabled ? axi2hdmi_colors[15:8]  : '0;
-    assign axi2hdmi_blue_o   = axi2hdmi_output_enabled ? axi2hdmi_colors[23:16] : '0;
+    assign axi2hdmi_blue_o   = axi2hdmi_output_enabled ? axi2hdmi_colors[7:0] : '0;
 
     always_comb begin
       axi_in_req[AxiIn.axi2hdmi]         = axi_axi2hdmi_req;
@@ -1766,34 +1766,6 @@ module cheshire_soc import cheshire_pkg::*; #(
       axi_in_req[AxiIn.axi2hdmi].ar.user = Cfg.AxiUserDefault;
     end
 
-/*
-    logic [5:0] clk_counter_q, clk_counter_d;
-    logic pixel_clk_q, pixel_clk_d;
-
-    //Make on negedge and posedge, so that is more evenly streched
-    //Makes 50MHz clk to 40 MHz clk
-    always_ff @( posedge clk_i or negedge clk_i or negedge rst_ni) begin : axi2hdmi_clk_divider
-      if (rst_ni == 0) begin
-        clk_counter_q <= '0;
-        pixel_clk_q <= '0;
-      end else begin
-        clk_counter_q <= clk_counter_d;
-        pixel_clk_q <= pixel_clk_d;
-      end
-    end
-
-    always_comb begin
-      clk_counter_d = clk_counter_q;
-      pixel_clk_d   = pixel_clk_q;
-
-      if (clk_counter_q != 0) begin
-        pixel_clk_d = ~pixel_clk_d;
-      end
-
-      clk_counter_d += 1;
-      clk_counter_d %= 5;
-    end
-*/
     AXI2HDMI #(
       .AXI4_ADDRESS_WIDTH(Cfg.AddrWidth),
       .AXI4_DATA_WIDTH(Cfg.AxiDataWidth),

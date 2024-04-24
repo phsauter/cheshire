@@ -29,7 +29,7 @@
 #define FG_COLOR_PALETTE  0x400
 #define BG_COLOR_PALETTE  0x800
 
-uint8_t is_in_text_mode = 1;
+const uint8_t is_in_text_mode = 1;
 
 uint32_t arr = 0x81000000;
 uint32_t pixtot = (1056<<16) + 628;
@@ -109,17 +109,28 @@ void pack_pixels(volatile uint32_t * const target, const uint32_t source[4]) {
     target[2] = ((source[3] << 8)) & ((source[2] >> 16) & 0xff);
 }
 
-
 void init_memory(volatile uint8_t * const target) {
     if (is_in_text_mode) {
         volatile uint16_t * ptr = target;
         for(int i = 0; i < cols * rows; i++) {
-            *ptr = (((i / 16) % 0xff)<< 8) | (i % 0xff); //Print every character I guess? With no color
+            //Print every character I guess?
+            //Bg and Fg use same color palette -> characters with same bg/fg color will not work
+            *ptr = (((i / 16) % 0xff)<< 8) | (i % 0xff);
             ptr++;
         }
         wts(6, ((volatile uint32_t*)target)[1]);
     } else {
-        for(int y = 0; y < 10; y++) {
+        for(int y = 0; y < 600; y++) {
+            for(int x = 0; x < 800; x++) {
+                volatile uint8_t * ptr = target + 3 * (x + y * 800);
+                ptr[0] = x;
+                ptr[1] = y;
+                ptr[2] = x*x*y;
+
+            }
+        }
+        /*
+        for(int y = 0; y < 600; y++) {
             volatile uint32_t * line_start = target + y * (800 * 3);
             for(int x4 = 0; x4 < 800 / 4; x4++) {
                 uint32_t pixels [4];
@@ -141,12 +152,56 @@ void init_memory(volatile uint8_t * const target) {
             fence();
             wts(7, y);
         }
+        */
         wts(6, ((volatile uint32_t*)target)[1]);
     }
 
     //Make sure that RAM is updated
     fence();
 }
+
+void setpx(volatile uint8_t * ptr, uint32_t val) {
+    ptr[0] = val;
+    ptr[1] = val >> 8;
+    ptr[2] = val >> 16;
+}
+
+float sin(float x) {
+    return x - x*x*x / 6 + x*x*x*x*x / 120;
+}
+
+void make_video(volatile uint8_t * const target, int time) {
+    const float PI = 3.1415;
+    const int divider = 50;
+    time %= (divider + 1);
+    time -= (divider / 2);
+
+    int radius = (int)(sin(2 * PI * time / divider) * 50) + 200;
+    if(radius < 0) {
+        radius = -radius;
+    }
+
+    int radius2 = radius * radius;
+    int orad = (radius + 5) * (radius + 5);
+    
+    for(int y = 300 - (radius + 5 + 2); y < 300 + (radius + 5 + 3); y++) {
+        for(int x = 400 - (radius + 5 + 2); x < 400 + (radius + 5 + 3); x++) {
+            volatile uint8_t * ptr = target + 3 * (x + y * 800);
+            int xm = x - 400;
+            int ym = y - 300;
+            int d = xm*xm + ym*ym;
+            if(radius2 > d) {
+                setpx(ptr, 0xff00ff);
+            } else if (orad > d) {
+                setpx(ptr, 0x00ff00);
+            } else {
+                setpx(ptr, 0);
+            }
+        }
+    }
+    fence();
+}
+
 
 int main(void) {
     uint32_t rtc_freq = *reg32(&__base_regs, CHESHIRE_RTC_FREQ_REG_OFFSET);
@@ -165,6 +220,12 @@ int main(void) {
 
     uint32_t err;
     uint32_t ret = test_peripheral(&err, (uint32_t) arr);
+
+    if(is_in_text_mode == 0) {
+        for(int x = 0; x != -1; x++)
+            make_video(arr, x);
+    }
+    
     wts(3, ret);
     wts(4, err);
     if(ret != 0) {
@@ -177,8 +238,5 @@ int main(void) {
         wts(7, i);
     }
 
-    //Necessary so that FPGA/sim does not stop
-    //while (1) {}
-    
     return 0;
 }
