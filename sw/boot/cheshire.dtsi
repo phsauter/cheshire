@@ -23,11 +23,11 @@
     stdout-path = "/soc/serial@3002000:115200";
     framebuffer0: framebuffer@A0000000 {
       compatible = "simple-framebuffer"; 
-      reg = <0x0 0xA0000000 0x0 (640 * 480 * 2)>;
-      width = <640>;
-      height = <480>;
-      stride = <(640 * 2)>;
-      format = "r5g6b5";
+      reg = <0x0 0xA0000000 0x0 (800 * 600 * 3)>;
+      width = <800>;
+      height = <600>;
+      stride = <(800 * 3)>;
+      format = "r8g8b8";
       status = "okay";
     };
   };
@@ -104,9 +104,13 @@
       #address-cells = <1>;
       #size-cells = <0>;
     };
-    vga@3007000 {
+    axi_vga: vga@3007000 {
       compatible = "eth,axi-vga";
       reg = <0x0 0x3007000 0x0 0x1000>;
+    };
+    axi2hdmi: vga@3008000 {
+      compatible = "eth,axi-vga";
+      reg = <0x0 0x3008000 0x0 0x1000>;
     };
     clint@2040000 {
       compatible = "riscv,clint0";
