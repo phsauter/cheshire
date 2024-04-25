@@ -24,7 +24,7 @@ packages:
     - common_verification
     - tech_cells_generic
   axi2hdmi:
-    revision: 90254e8c171016f2b0b9eaa444d0d19ffcb741ae
+    revision: 564b948554693cf7a4c0577055d861d0200256c8
     version: null
     source:
       Git: /home/bsc24f12/PAPER_hw
@@ -88,8 +88,8 @@ packages:
     - common_cells
     - register_interface
   common_cells:
-    revision: 7773d971b9d7bef7f5f6a2ef36ee1e4d02cefcd3
-    version: 1.34.0
+    revision: 0d67563b6b592549542544f1abc0f43e5d4ee8b4
+    version: 1.35.0
     source:
       Git: https://github.com/pulp-platform/common_cells.git
     dependencies:

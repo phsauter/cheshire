@@ -203,6 +203,19 @@ void make_video(volatile uint8_t * const target, int time) {
 }
 
 
+void floating_text(volatile uint16_t * target, int time) {
+    char * text = "hello world";
+    time /= 10;[p]
+    target += (strlen(text) * (time / 57)) % (rows * cols);
+    while(*text != 0) {
+        *target = ((time / 31) << 8) | *text; 
+        text += 1;
+        target += 1;
+    }
+
+    fence();
+}
+
 int main(void) {
     uint32_t rtc_freq = *reg32(&__base_regs, CHESHIRE_RTC_FREQ_REG_OFFSET);
     uint64_t reset_freq = clint_get_core_freq(rtc_freq, 2500);
@@ -224,6 +237,9 @@ int main(void) {
     if(is_in_text_mode == 0) {
         for(int x = 0; x != -1; x++)
             make_video(arr, x);
+    } else {
+        for(int x = 0; x != -1; x++)
+            floating_text(arr, x);
     }
     
     wts(3, ret);
