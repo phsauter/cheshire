@@ -34,5 +34,6 @@ add wave -label "12" sim:/tb_cheshire_soc/fix/dut/i_regs/u_scratch_12/q
 add wave -label "13" sim:/tb_cheshire_soc/fix/dut/i_regs/u_scratch_13/q
 add wave -label "14" sim:/tb_cheshire_soc/fix/dut/i_regs/u_scratch_14/q
 add wave -label "15" sim:/tb_cheshire_soc/fix/dut/i_regs/u_scratch_15/q
+add wave sim:/tb_cheshire_soc/fix/dut/i_regs/reg2hw
 add wave -noupdate -divider CmdIf
 add wave sim:/tb_cheshire_soc/fix/dut/gen_axi2hdmi/i_axi2hdmi/CmdInterface_i/*
