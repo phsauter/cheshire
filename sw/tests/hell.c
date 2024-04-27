@@ -31,18 +31,22 @@
 
 const uint8_t is_in_text_mode = 1;
 
-uint32_t arr = 0x81000000;
-uint32_t pixtot = (1056<<16) + 628;
-uint32_t pixact = (800<<16) + 600;
-uint32_t front_porch = (40<<16) + 1;
-uint32_t sync_times = ((128<<16) + 4) | (1<<31) | (1<<15);
-uint16_t cols = 90, rows = 35;
+const uint32_t make_animation = 0;
+const uint32_t arr = 0x81000000;
+const uint32_t pixtot = (1056<<16) + 628;
+const uint32_t pixact = (800<<16) + 600;
+const uint32_t front_porch = (40<<16) + 1;
+const uint32_t sync_times = ((128<<16) + 4) | (1<<31) | (1<<15);
+const uint16_t cols = 90, rows = 35;
 
 void wts(int idx, uint32_t val) {
     *reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_SCRATCH_1_REG_OFFSET * idx) = val;
 }
 
 uint32_t test_peripheral(uint32_t* const err, uint32_t ptr) {
+    //Select PAPER_hw
+    *reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_VGA_SELECT_REG_OFFSET) = 0x1;
+
     *reg32(AXI2HDMI_BASE, H_VTOT) = pixtot;
     *err = *reg32(AXI2HDMI_BASE, H_VTOT);
     if(*err != pixtot) {
@@ -129,30 +133,7 @@ void init_memory(volatile uint8_t * const target) {
 
             }
         }
-        /*
-        for(int y = 0; y < 600; y++) {
-            volatile uint32_t * line_start = target + y * (800 * 3);
-            for(int x4 = 0; x4 < 800 / 4; x4++) {
-                uint32_t pixels [4];
-                for(int x = 0; x < 4; x++) {
-                    uint32_t rgb = 0;
-                    if(y == 0) {
-                        rgb |= (x4 * 4 + x) / 10;
-                    } else if (y == 1) {
-                        rgb |= ((x4 * 4 + x) / 10) << 8;
-                    } else if (y == 2) {
-                        rgb |= ((x4 * 4 + x) / 10) << 16;
-                    }
-                    pixels[x] = rgb;
-                }
-                pack_pixels(line_start, pixels);
-                //Wrote 4 pixels into 3 bytes, go on the next four
-                line_start += 3;
-            }
-            fence();
-            wts(7, y);
-        }
-        */
+
         wts(6, ((volatile uint32_t*)target)[1]);
     }
 
@@ -202,10 +183,9 @@ void make_video(volatile uint8_t * const target, int time) {
     fence();
 }
 
-
 void floating_text(volatile uint16_t * target, int time) {
     char * text = "hello world";
-    time /= 10;[p]
+    time /= 10;
     target += (strlen(text) * (time / 57)) % (rows * cols);
     while(*text != 0) {
         *target = ((time / 31) << 8) | *text; 
@@ -233,14 +213,6 @@ int main(void) {
 
     uint32_t err;
     uint32_t ret = test_peripheral(&err, (uint32_t) arr);
-
-    if(is_in_text_mode == 0) {
-        for(int x = 0; x != -1; x++)
-            make_video(arr, x);
-    } else {
-        for(int x = 0; x != -1; x++)
-            floating_text(arr, x);
-    }
     
     wts(3, ret);
     wts(4, err);
@@ -248,10 +220,22 @@ int main(void) {
         return -1;
     }
     wts(5, *reg32(AXI2HDMI_BASE, CURRENT_PTR));
-    //wts(6, arr);
-    
+
+    if(make_animation) {
+        if(is_in_text_mode == 0) {
+            for(int x = 0; x != -1; x++)
+                make_video(arr, x);
+        } else {
+            for(int x = 0; x != -1; x++)
+                floating_text(arr, x);
+        }
+    }
+
+    //This is here so that the sim continues to go on a bit
+    volatile uint32_t * aaaa = reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_VGA_SELECT_REG_OFFSET);
     for(uint32_t i = 0; i < 0x80000; i++) {
         wts(7, i);
+        *aaaa = (i / 0x00800) % 2;
     }
 
     return 0;

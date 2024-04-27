@@ -1586,20 +1586,19 @@ module cheshire_soc import cheshire_pkg::*; #(
     assign slink_o          = '0;
 
   end
+  ////////////////
+  //AXI HDMI MUX//
+  ////////////////
+  //axi2hdmi and axi2vga use the same IO pins. Only
+  //one peripheral at once can drive outputs
+  logic                          vga_hsync_tmp;
+  logic                          vga_vsync_tmp;
+  logic [Cfg.VgaRedWidth  -1:0]  vga_red_tmp;
+  logic [Cfg.VgaGreenWidth-1:0]  vga_green_tmp;
+  logic [Cfg.VgaBlueWidth -1:0]  vga_blue_tmp;
 
-  //AXI HDMI MUX
-  //Ugly mux so that axi2vga and axi2hdmi can use the same mux
-  logic use_paper;
-
-   logic                          vga_hsync_tmp;
-   logic                          vga_vsync_tmp;
-   logic [Cfg.VgaRedWidth  -1:0]  vga_red_tmp;
-   logic [Cfg.VgaGreenWidth-1:0]  vga_green_tmp;
-   logic [Cfg.VgaBlueWidth -1:0]  vga_blue_tmp;
-
-  assign use_paper = 1;
   always_comb begin
-    if (use_paper == 1) begin    
+    if (reg_reg2hw.vga_select.q == 1) begin    
       vga_hsync_o  = axi2hdmi_hsync_o;
       vga_vsync_o  = axi2hdmi_vsync_o;
       vga_red_o    = axi2hdmi_red_o[7:(8-Cfg.VgaRedWidth)];
@@ -1836,7 +1835,6 @@ module cheshire_soc import cheshire_pkg::*; #(
       .DC_FIFO_DEPTH(Cfg.Axi2HdmiDcFifoDepth),
       .SC_FIFO_DEPTH(Cfg.Axi2HdmiScFifoDepth),
       .FILL_THRESH(Cfg.Axi2HdmiFillThreshold),
-      //TODO haha font is relative, get rekt if you don't have it in the home folder
       .FONT_MEMINIT_FILE("font_meminit.txt"),
       .XILINX(0),
       .axi_req_t(axi_mst_req_t),
