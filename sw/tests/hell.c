@@ -235,7 +235,8 @@ int main(void) {
     volatile uint32_t * aaaa = reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_VGA_SELECT_REG_OFFSET);
     for(uint32_t i = 0; i < 0x80000; i++) {
         wts(7, i);
-        *aaaa = (i / 0x00800) % 2;
+        //Uncomment this to check whether peripheral can be replaced by axi2vga
+        //*aaaa = (i / 0x00800) % 2;
     }
 
     return 0;

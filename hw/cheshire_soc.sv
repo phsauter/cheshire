@@ -1772,7 +1772,6 @@ module cheshire_soc import cheshire_pkg::*; #(
       .AXI4_ID_WIDTH(Cfg.AxiMstIdWidth),
       .DC_FIFO_DEPTH(Cfg.Axi2HdmiDcFifoDepth),
       .SC_FIFO_DEPTH(Cfg.Axi2HdmiScFifoDepth),
-      .FILL_THRESH(Cfg.Axi2HdmiFillThreshold),
       .FONT_MEMINIT_FILE("font_meminit.txt"),
       .XILINX(0),
       .axi_req_t(axi_mst_req_t),
