@@ -25,6 +25,8 @@
 #define CURRENT_PTR       ( 6 * CMD_IF_OFFSET)
 #define TEXT_BUFF_PARA    ( 7 * CMD_IF_OFFSET)
 #define CURSOR_FONT_PARA  ( 8 * CMD_IF_OFFSET)
+#define FIFO_REFILL_THRESHOLD  ( 9 * CMD_IF_OFFSET)
+#define FIFI_MAX_REFILL_AMOUNT  ( 10 * CMD_IF_OFFSET)
 
 #define FG_COLOR_PALETTE  0x400
 #define BG_COLOR_PALETTE  0x800
@@ -232,11 +234,16 @@ int main(void) {
     }
 
     //This is here so that the sim continues to go on a bit
-    volatile uint32_t * aaaa = reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_VGA_SELECT_REG_OFFSET);
+    volatile uint32_t * vga_disabler = reg32(&__base_regs, CHESHIRE_SCRATCH_0_REG_OFFSET + CHESHIRE_VGA_SELECT_REG_OFFSET);
+    volatile uint32_t * refill_thrsh = reg32(AXI2HDMI_BASE, FIFO_REFILL_THRESHOLD);
+    volatile uint32_t * max_refill = reg32(AXI2HDMI_BASE, FIFI_MAX_REFILL_AMOUNT);
+
     for(uint32_t i = 0; i < 0x80000; i++) {
         wts(7, i);
+        //Play a bit around with maximal refill size
+        *max_refill = 5 + ((i / 0x00800) % 2) * 5;
         //Uncomment this to check whether peripheral can be replaced by axi2vga
-        //*aaaa = (i / 0x00800) % 2;
+        //*vga_disabler = (i / 0x00800) % 2;
     }
 
     return 0;

@@ -24,7 +24,7 @@ packages:
     - common_verification
     - tech_cells_generic
   axi2hdmi:
-    revision: 344258d09dcbfb278a5503471cf5299c976208ec
+    revision: 20ad9c09a618f6ab52e415353c2332f16c34f3fd
     version: null
     source:
       Git: /home/bsc24f12/PAPER_hw
